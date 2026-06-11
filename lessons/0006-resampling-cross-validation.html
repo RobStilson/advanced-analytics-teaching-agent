@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 6 — Resampling & Cross-Validation</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #e5e7eb;
+    --bg: #fafaf9;
+    --correct: #16a34a;
+    --correct-bg: #dcfce7;
+    --wrong: #dc2626;
+    --wrong-bg: #fee2e2;
+    --neutral-bg: #f3f4f6;
+    --code-bg: #1e1e2e;
+    --code-fg: #cdd6f4;
+    --code-comment: #6c7086;
+    --code-fn: #89b4fa;
+    --code-str: #a6e3a1;
+    --code-num: #fab387;
+    --code-kw: #cba6f7;
+    --code-op: #89dceb;
+    --fold-train: #bfdbfe;
+    --fold-assess: #fca5a5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px; line-height: 1.75; color: var(--ink);
+    background: var(--bg); padding: 3rem 1.5rem 6rem;
+  }
+
+  main { max-width: 640px; margin: 0 auto; }
+
+  .lesson-meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.5rem;
+  }
+
+  h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 0.4rem; font-weight: normal; }
+  .subtitle { font-style: italic; color: var(--muted); margin-bottom: 2.5rem; font-size: 1.05rem; }
+
+  h2 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 2.5rem 0 0.75rem;
+  }
+
+  p { margin-bottom: 1.2rem; }
+
+  code {
+    font-family: 'Courier New', monospace; font-size: 0.88em;
+    background: var(--neutral-bg); padding: 0.1em 0.3em; border-radius: 3px;
+  }
+
+  pre {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: 1.25rem 1.5rem; margin: 1.25rem 0; overflow-x: auto;
+    font-family: 'Courier New', monospace; font-size: 0.88rem; line-height: 1.6;
+  }
+
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .kw  { color: var(--code-kw); }
+  .fn  { color: var(--code-fn); }
+  .str { color: var(--code-str); }
+  .num { color: var(--code-num); }
+  .cm  { color: var(--code-comment); font-style: italic; }
+  .op  { color: var(--code-op); }
+
+  .callout {
+    background: var(--accent-light); border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem; margin: 1.5rem 0; font-size: 0.95rem; border-radius: 0 6px 6px 0;
+  }
+
+  .callout strong {
+    display: block; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.3rem; color: var(--accent);
+  }
+
+  /* CV diagram */
+  .cv-diagram {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem; margin: 1.25rem 0; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .cv-diagram-title {
+    font-size: 0.78rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .cv-controls { display: flex; align-items: center; gap: 0.5rem; }
+
+  .cv-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.78rem;
+    padding: 0.25rem 0.65rem; border: 1px solid var(--border); border-radius: 4px;
+    background: white; cursor: pointer; color: var(--ink);
+  }
+
+  .cv-btn:hover { background: var(--neutral-bg); }
+
+  .fold-grid {
+    display: flex; flex-direction: column; gap: 3px;
+  }
+
+  .fold-row {
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  .fold-label {
+    width: 52px; font-size: 0.72rem; color: var(--muted); text-align: right;
+    flex-shrink: 0; padding-right: 6px;
+  }
+
+  .fold-cell {
+    flex: 1; height: 18px; border-radius: 2px; background: var(--fold-train);
+    transition: background 0.25s;
+  }
+
+  .fold-cell.assess { background: var(--fold-assess); }
+
+  .fold-metric {
+    width: 80px; font-size: 0.72rem; color: var(--muted);
+    text-align: left; padding-left: 6px; flex-shrink: 0;
+  }
+
+  .cv-legend {
+    display: flex; gap: 1.25rem; margin-top: 0.9rem; font-size: 0.78rem; color: var(--muted);
+  }
+
+  .legend-swatch {
+    display: inline-block; width: 12px; height: 12px; border-radius: 2px;
+    margin-right: 4px; vertical-align: middle;
+  }
+
+  .avg-row {
+    margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);
+    font-size: 0.82rem; font-family: 'Helvetica Neue', Arial, sans-serif;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .avg-val { font-weight: 700; color: var(--accent); }
+
+  /* Metric comparison */
+  .metric-compare {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; margin: 1.25rem 0; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .mc-row {
+    display: flex; border-bottom: 1px solid var(--border);
+  }
+
+  .mc-row:last-child { border-bottom: none; }
+
+  .mc-cell {
+    flex: 1; padding: 0.65rem 1rem; font-size: 0.83rem;
+  }
+
+  .mc-header { background: var(--neutral-bg); font-weight: 700; font-size: 0.72rem;
+    letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+
+  .mc-good { color: var(--correct); font-weight: 600; }
+  .mc-warn { color: #b45309; font-weight: 600; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+  .question-block { margin-bottom: 2rem; }
+
+  .question-text {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; line-height: 1.4;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .option-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9rem;
+    text-align: left; padding: 0.65rem 1rem; border: 1px solid var(--border);
+    border-radius: 6px; background: white; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; line-height: 1.3;
+  }
+
+  .option-btn:hover:not(:disabled) { background: var(--neutral-bg); border-color: #9ca3af; }
+  .option-btn.correct { background: var(--correct-bg); border-color: var(--correct); color: #14532d; font-weight: 600; }
+  .option-btn.wrong   { background: var(--wrong-bg);   border-color: var(--wrong);   color: #7f1d1d; }
+
+  .feedback {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 4px; display: none;
+  }
+
+  .feedback.show    { display: block; }
+  .feedback.correct { background: var(--correct-bg); color: #14532d; }
+  .feedback.wrong   { background: var(--wrong-bg);   color: #7f1d1d; }
+
+  .score-display {
+    font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--neutral-bg);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1.5rem; display: none; font-size: 0.95rem;
+  }
+
+  .score-display.show { display: block; }
+
+  .primary-source {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1.5rem 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.88rem;
+  }
+
+  .primary-source .source-label {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.3rem;
+  }
+
+  .primary-source a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .primary-source a:hover { text-decoration: underline; }
+
+  .ask-teacher {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+    padding: 1rem 1.25rem; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.88rem; color: #92400e; margin-top: 1.5rem;
+  }
+
+  .nav-links {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 2.5rem; color: var(--muted); display: flex; justify-content: space-between;
+  }
+
+  .nav-links a { color: var(--accent); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="lesson-meta">Lesson 6 &nbsp;·&nbsp; Tidymodels for People Analytics</div>
+  <h1>Resampling &amp; Cross-Validation</h1>
+  <div class="subtitle">Getting an honest performance estimate without touching the test set</div>
+
+  <h2>The Gap Between Now and Lesson 2</h2>
+
+  <p>Back in Lesson 2 you split your data and set the test set aside. You've been building — a recipe, a parsnip spec, a workflow. But here's the problem: how do you know if your model is actually good <em>before</em> you look at the test set?</p>
+
+  <p>You can't measure performance on the training data — the model has already seen it, so the numbers are optimistically inflated. A random forest can nearly memorize training data and report near-perfect accuracy, while performing much worse on new employees. You can't look at the test set yet either — that would spend your one-shot evaluation prematurely.</p>
+
+  <p>Resampling solves this by repeatedly splitting the <em>training set</em> into mini train/assess pairs, fitting and evaluating the workflow each time, then averaging the results. You get an honest performance estimate using only training data — the test set stays untouched.</p>
+
+  <h2>How 10-Fold Cross-Validation Works</h2>
+
+  <p>The training set is divided into 10 roughly equal folds. In each of 10 iterations, a different fold serves as the assessment set while the other 9 train the model. The result: 10 independent performance estimates, averaged into one stable number.</p>
+
+  <div class="cv-diagram">
+    <div class="cv-diagram-title">
+      <span>10-fold cross-validation — click the arrows to step through</span>
+      <div class="cv-controls">
+        <button class="cv-btn" onclick="prevFold()">&#8592;</button>
+        <span id="fold-indicator" style="font-size:0.82rem;font-weight:600;color:var(--accent);min-width:50px;text-align:center">Fold 1</span>
+        <button class="cv-btn" onclick="nextFold()">&#8594;</button>
+      </div>
+    </div>
+
+    <div class="fold-grid" id="fold-grid"></div>
+
+    <div class="cv-legend">
+      <span><span class="legend-swatch" style="background:var(--fold-train)"></span>Training (fits model)</span>
+      <span><span class="legend-swatch" style="background:var(--fold-assess)"></span>Assessment (measures performance)</span>
+    </div>
+
+    <div class="avg-row">
+      <span>Average ROC-AUC across 10 folds:</span>
+      <span class="avg-val" id="avg-auc">0.837</span>
+    </div>
+  </div>
+
+  <p>The averaged ROC-AUC of ~0.84 is your working estimate of how well the attrition model generalizes — far more trustworthy than the ~0.98 you'd see if you naively evaluated on training data alone.</p>
+
+  <h2>The Code</h2>
+
+  <p>Three functions — <code>vfold_cv()</code>, <code>fit_resamples()</code>, <code>collect_metrics()</code> — replace the single <code>fit()</code> call when you want resampled performance:</p>
+
+<pre><code><span class="cm"># 1. Create 10 stratified folds from the training data</span>
+<span class="fn">set.seed</span>(<span class="num">502</span>)
+attr_folds &lt;- <span class="fn">vfold_cv</span>(attr_train, v = <span class="num">10</span>, strata = <span class="str">Attrition</span>)
+
+attr_folds
+<span class="cm">#> #  10-fold cross-validation using stratification
+#>  splits              id
+#>  &lt;list&gt;              &lt;chr&gt;
+#>  Fold01 ... Fold10</span>
+
+<span class="cm"># 2. Fit the workflow across all 10 folds</span>
+attr_rs &lt;- attr_wf <span class="op">%>%</span>
+  <span class="fn">fit_resamples</span>(resamples = attr_folds)
+
+<span class="cm"># 3. Collect averaged performance metrics</span>
+<span class="fn">collect_metrics</span>(attr_rs)
+<span class="cm">#> # A tibble: 2 × 6
+#>   .metric  .estimator  mean     n std_err .config
+#>   accuracy binary      0.874   10   0.011 Preprocessor1_Model1
+#>   roc_auc  binary      0.837   10   0.015 Preprocessor1_Model1</span></code></pre>
+
+  <p>Notice <code>strata = Attrition</code> in <code>vfold_cv()</code> — the same reason you used it in <code>initial_split()</code>. Each fold needs the same ~16% attrition rate as the full dataset, or your performance estimate will vary fold-to-fold for the wrong reasons.</p>
+
+  <h2>Why ROC-AUC, Not Accuracy</h2>
+
+  <p>The output gives you two metrics. For attrition data, <strong>ROC-AUC is the one that matters</strong>. Here's why:</p>
+
+  <div class="metric-compare">
+    <div class="mc-row">
+      <div class="mc-cell mc-header">Metric</div>
+      <div class="mc-cell mc-header">What it measures</div>
+      <div class="mc-cell mc-header">Attrition verdict</div>
+    </div>
+    <div class="mc-row">
+      <div class="mc-cell"><strong>Accuracy</strong></div>
+      <div class="mc-cell">% of predictions that are correct</div>
+      <div class="mc-cell mc-warn">Misleading — a model that predicts "No" for everyone gets 84% accuracy on attrition data</div>
+    </div>
+    <div class="mc-row">
+      <div class="mc-cell"><strong>ROC-AUC</strong></div>
+      <div class="mc-cell">Model's ability to rank leavers above stayers across all thresholds</div>
+      <div class="mc-cell mc-good">Honest — 0.5 = random guessing, 1.0 = perfect, unaffected by class imbalance</div>
+    </div>
+  </div>
+
+  <p>A ROC-AUC of 0.837 means: pick any employee who left and any who stayed — the model ranks the leaver as higher risk 83.7% of the time. That's the number to bring to HR leadership.</p>
+
+  <div class="callout">
+    <strong>The Pit of Success in Action</strong>
+    fit_resamples() automatically applies the full workflow — recipe preprocessing and model fitting — inside every fold. You can't accidentally leak the assessment fold's statistics into the preprocessing. The correct practice is, again, the easiest path.
+  </div>
+
+  <h2>Connecting the Dots: What You Now Have</h2>
+
+  <p>You've now built every piece of the core tidymodels pipeline:</p>
+
+  <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.85rem;background:white;border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin:1.25rem 0;">
+    <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+      <span style="background:var(--neutral-bg);padding:0.3rem 0.7rem;border-radius:4px;font-weight:600">Split (L2)</span>
+      <span style="color:var(--muted)">→</span>
+      <span style="background:var(--neutral-bg);padding:0.3rem 0.7rem;border-radius:4px;font-weight:600">Recipe (L5)</span>
+      <span style="color:var(--muted)">→</span>
+      <span style="background:var(--neutral-bg);padding:0.3rem 0.7rem;border-radius:4px;font-weight:600">Model (L3)</span>
+      <span style="color:var(--muted)">→</span>
+      <span style="background:var(--neutral-bg);padding:0.3rem 0.7rem;border-radius:4px;font-weight:600">Workflow (L4)</span>
+      <span style="color:var(--muted)">→</span>
+      <span style="background:var(--accent-light);padding:0.3rem 0.7rem;border-radius:4px;font-weight:600;color:var(--accent)">Resample (L6)</span>
+      <span style="color:var(--muted)">→</span>
+      <span style="background:var(--neutral-bg);padding:0.3rem 0.7rem;border-radius:4px;color:var(--muted)">Tune → Explain</span>
+    </div>
+  </div>
+
+  <p>Two lessons remain before the complete pipeline. Lesson 7 covers tuning — finding the best hyperparameters using these same folds. Lesson 8 covers model explainability: showing HR leadership <em>which factors drive attrition risk</em>, not just the overall score.</p>
+
+  <hr>
+
+  <div class="quiz-section">
+    <h2>Check Your Understanding</h2>
+
+    <div class="question-block" id="q1">
+      <div class="question-text">1. Why can't you use training set performance as your final model evaluation metric?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q1',false)">Training data is too small to give stable performance estimates</button>
+        <button class="option-btn" onclick="answer(this,'q1',true)">The model has already seen the training data, so performance is artificially inflated</button>
+        <button class="option-btn" onclick="answer(this,'q1',false)">Training performance always underestimates the true quality of the model</button>
+      </div>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+
+    <div class="question-block" id="q2">
+      <div class="question-text">2. Why use strata = Attrition in vfold_cv() for the attrition dataset?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q2',false)">So the cross-validation runs faster on class-imbalanced data</button>
+        <button class="option-btn" onclick="answer(this,'q2',true)">So each fold preserves the same ~16% attrition rate as the full training set</button>
+        <button class="option-btn" onclick="answer(this,'q2',false)">So rare job role levels are distributed evenly across all folds</button>
+      </div>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <div class="question-block" id="q3">
+      <div class="question-text">3. For attrition modeling, why is ROC-AUC more informative than accuracy?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q3',false)">Accuracy cannot be computed for binary classification problems in tidymodels</button>
+        <button class="option-btn" onclick="answer(this,'q3',false)">ROC-AUC is always a higher number, making results look better in reports</button>
+        <button class="option-btn" onclick="answer(this,'q3',true)">A model predicting "No" for everyone gets 84% accuracy yet provides no predictive value</button>
+      </div>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+
+    <div class="score-display" id="score-display"></div>
+  </div>
+
+  <hr>
+
+  <div class="primary-source">
+    <div class="source-label">Primary Source for This Lesson</div>
+    <a href="https://www.tmwr.org/resampling" target="_blank">Tidy Modeling with R — Chapter 10: Resampling for Evaluating Performance</a>
+    <div style="margin-top:0.35rem; color: var(--muted);">Read for the full comparison of resampling methods (bootstrapping, repeated CV, validation sets) and the detailed walkthrough of apparent vs. resampled performance on the Ames housing data.</div>
+  </div>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher anything — when to use repeated CV vs. standard CV, how collect_predictions() enables per-employee analysis, or what metric to show CHRO leadership. Just type in the chat.
+  </div>
+
+  <div class="nav-links">
+    <span>&#8592; <a href="0005-feature-engineering-recipes.html">Lesson 5: Feature Engineering</a></span>
+    <span>Next &#8594; <a href="0007-tuning.html">Lesson 7: Tuning Hyperparameters</a></span>
+  </div>
+
+</main>
+<script>
+  const V = 10;
+  let activeFold = 0;
+
+  const mockAUC = [0.851, 0.824, 0.843, 0.819, 0.862, 0.831, 0.845, 0.828, 0.836, 0.841];
+
+  function buildGrid() {
+    const grid = document.getElementById('fold-grid');
+    grid.innerHTML = '';
+    for (let f = 0; f < V; f++) {
+      const row = document.createElement('div');
+      row.className = 'fold-row';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'fold-label';
+      lbl.textContent = 'Fold ' + (f + 1);
+      row.appendChild(lbl);
+
+      for (let c = 0; c < V; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'fold-cell' + (c === activeFold ? ' assess' : '');
+        row.appendChild(cell);
+      }
+
+      const metric = document.createElement('div');
+      metric.className = 'fold-metric';
+      if (f === activeFold) {
+        metric.textContent = 'AUC: ' + mockAUC[f].toFixed(3);
+        metric.style.fontWeight = '600';
+        metric.style.color = '#2563eb';
+      }
+      row.appendChild(metric);
+
+      grid.appendChild(row);
+    }
+
+    document.getElementById('fold-indicator').textContent = 'Fold ' + (activeFold + 1);
+    const avg = (mockAUC.reduce(function(a, b) { return a + b; }, 0) / V).toFixed(3);
+    document.getElementById('avg-auc').textContent = avg;
+  }
+
+  function nextFold() { activeFold = (activeFold + 1) % V; buildGrid(); }
+  function prevFold() { activeFold = (activeFold - 1 + V) % V; buildGrid(); }
+
+  buildGrid();
+
+  // Quiz
+  var correct = {};
+  var answered = 0;
+
+  var exp = {
+    q1: {
+      y: "Exactly. The model has fitted to the training data — it has already 'seen' those rows. Flexible models like random forests can memorize training data and report near-perfect metrics that won't hold on new employees.",
+      n: "Not quite. The issue is that the model has already seen the training data — so evaluating on it gives an inflated, over-optimistic picture of real-world performance."
+    },
+    q2: {
+      y: "Correct. Without stratification, some folds might have 12% attrition by chance and others 22%. The performance metric would vary fold-to-fold for a spurious reason — the class balance — rather than genuine model variance.",
+      n: "Stratification isn't about speed or job roles — it ensures every fold has the same class balance (~16% attrition) as the full training set, so fold-to-fold metric variance reflects the model, not sampling luck."
+    },
+    q3: {
+      y: "Exactly. A 'dumb' model that always predicts No gets 84% accuracy on attrition data — and provides zero value. ROC-AUC is unaffected by this: it measures ranking ability across all possible thresholds, so 0.5 is always the random-guessing baseline.",
+      n: "Accuracy can be computed for binary problems in tidymodels — the issue is that it's misleading when classes are imbalanced. A model predicting 'No' for everyone gets 84% accuracy on attrition data while being completely useless."
+    }
+  };
+
+  function answer(btn, qid, isCorrect) {
+    var block = document.getElementById(qid);
+    var buttons = block.querySelectorAll('.option-btn');
+    var fb = document.getElementById(qid + '-fb');
+
+    if (correct[qid] !== undefined) return;
+
+    buttons.forEach(function(b) { b.disabled = true; });
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+
+    if (!isCorrect) {
+      buttons.forEach(function(b) {
+        if (b.getAttribute('onclick').indexOf('true') !== -1) b.classList.add('correct');
+      });
+    }
+
+    fb.innerHTML = isCorrect ? exp[qid].y : exp[qid].n;
+    fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+
+    correct[qid] = isCorrect ? 1 : 0;
+    answered++;
+    if (answered === 3) showScore();
+  }
+
+  function showScore() {
+    var score = Object.values(correct).reduce(function(a, b) { return a + b; }, 0);
+    var msgs = [
+      'Re-read the lesson — focus on why training performance is misleading and what ROC-AUC measures.',
+      'Good effort — review the difference between accuracy and ROC-AUC for imbalanced data.',
+      'Solid — nearly there.',
+      'Perfect. You are ready for Lesson 7.'
+    ];
+    var el = document.getElementById('score-display');
+    el.innerHTML = '<strong>Score: ' + score + '/3</strong> &nbsp;&middot;&nbsp; ' + msgs[score];
+    el.className = 'score-display show';
+  }
+</script>
+</body>
+</html>

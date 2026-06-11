@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 1 — Why tidymodels?</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #e5e7eb;
+    --bg: #fafaf9;
+    --correct: #16a34a;
+    --correct-bg: #dcfce7;
+    --wrong: #dc2626;
+    --wrong-bg: #fee2e2;
+    --neutral-bg: #f3f4f6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--bg);
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .lesson-meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+    margin-bottom: 0.4rem;
+    font-weight: normal;
+  }
+
+  .subtitle {
+    font-style: italic;
+    color: var(--muted);
+    margin-bottom: 2.5rem;
+    font-size: 1.05rem;
+  }
+
+  h2 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 2.5rem 0 0.75rem;
+  }
+
+  p { margin-bottom: 1.2rem; }
+
+  .callout {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .callout strong {
+    display: block;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    color: var(--accent);
+  }
+
+  .package-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin: 1.25rem 0;
+  }
+
+  .package-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+  }
+
+  .package-card .pkg-name {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: var(--accent);
+    margin-bottom: 0.2rem;
+  }
+
+  .package-card .pkg-role {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+
+  .package-card .pkg-desc {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .workflow-diagram {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin: 1.25rem 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .wf-step {
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .wf-arrow {
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  .quiz-section h2 {
+    margin-bottom: 1.25rem;
+  }
+
+  .question-block {
+    margin-bottom: 2rem;
+  }
+
+  .question-text {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .option-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.9rem;
+    text-align: left;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    line-height: 1.3;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    background: var(--neutral-bg);
+    border-color: #9ca3af;
+  }
+
+  .option-btn.correct {
+    background: var(--correct-bg);
+    border-color: var(--correct);
+    color: var(--correct);
+    font-weight: 600;
+  }
+
+  .option-btn.wrong {
+    background: var(--wrong-bg);
+    border-color: var(--wrong);
+    color: var(--wrong);
+  }
+
+  .feedback {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    display: none;
+  }
+
+  .feedback.show { display: block; }
+  .feedback.correct { background: var(--correct-bg); color: #14532d; }
+  .feedback.wrong { background: var(--wrong-bg); color: #7f1d1d; }
+
+  .score-display {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: var(--neutral-bg);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 1.5rem;
+    display: none;
+    font-size: 0.95rem;
+  }
+
+  .score-display.show { display: block; }
+
+  .primary-source {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.88rem;
+  }
+
+  .primary-source .source-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+
+  .primary-source a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .primary-source a:hover { text-decoration: underline; }
+
+  .ask-teacher {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.88rem;
+    color: #92400e;
+    margin-top: 1.5rem;
+  }
+
+  .nav-links {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    margin-top: 2.5rem;
+    color: var(--muted);
+  }
+
+  .nav-links a { color: var(--accent); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+
+  a { color: var(--accent); }
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.88em;
+    background: var(--neutral-bg);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="lesson-meta">Lesson 1 &nbsp;·&nbsp; Tidymodels for People Analytics</div>
+  <h1>Why tidymodels?</h1>
+  <div class="subtitle">The problem with ad-hoc modeling — and the solution</div>
+
+  <h2>The Problem You Already Have</h2>
+
+  <p>If you've been modeling in R for a while, your workflow probably looks something like this: load data, maybe split it, fit <code>lm()</code> or <code>glm()</code>, look at <code>summary()</code>, call it done. It works. Until it doesn't.</p>
+
+  <p>Consider an attrition model you built six months ago. Can you reproduce it exactly? Did you preprocess the test data with the same transformations you used on training? Did you tune any parameters without accidentally peeking at the test set? These aren't hypothetical questions — they're the specific ways ad-hoc models go wrong in People Analytics, where an HR director may act on a prediction that quietly leaked information.</p>
+
+  <div class="callout">
+    <strong>People Analytics Reality</strong>
+    The most common source of inflated model performance in HR data is <em>information leakage</em> — letting test-time data touch your preprocessing or model selection. tidymodels makes this nearly impossible to do accidentally.
+  </div>
+
+  <h2>The "Pit of Success"</h2>
+
+  <p>The core design goal of tidymodels is captured in Chapter 1 of <em>Tidy Modeling with R</em>: the <strong>Pit of Success</strong>. Rather than requiring deep expertise to avoid mistakes, tidymodels is designed so that <em>doing the right thing is the easiest thing</em>.</p>
+
+  <p>You don't have to remember to re-apply your preprocessing recipe to the test set — the workflow object does it automatically. You don't have to manually track which resampling fold is which — <code>{rsample}</code> handles it. The correct practice is the default path.</p>
+
+  <p>This matters in People Analytics, where models inform high-stakes decisions about people's careers. A framework that prevents common errors isn't just convenient — it's responsible.</p>
+
+  <h2>The Five Core Packages</h2>
+
+  <p>tidymodels is a <em>collection</em> of packages, where each package owns one stage of the modeling workflow.</p>
+
+  <div class="package-grid">
+    <div class="package-card">
+      <div class="pkg-name">{rsample}</div>
+      <div class="pkg-role">Data Splitting</div>
+      <div class="pkg-desc">Creates train/test splits and resampling folds (cross-validation, bootstraps)</div>
+    </div>
+    <div class="package-card">
+      <div class="pkg-name">{recipes}</div>
+      <div class="pkg-role">Feature Engineering</div>
+      <div class="pkg-desc">Preprocessing steps learned on training data, safely applied to new data</div>
+    </div>
+    <div class="package-card">
+      <div class="pkg-name">{parsnip}</div>
+      <div class="pkg-role">Model Specification</div>
+      <div class="pkg-desc">One consistent interface to hundreds of models — swap engines without rewriting code</div>
+    </div>
+    <div class="package-card">
+      <div class="pkg-name">{workflows}</div>
+      <div class="pkg-role">Bundle Everything</div>
+      <div class="pkg-desc">Combines a recipe + model into one object so preprocessing and fitting always travel together</div>
+    </div>
+    <div class="package-card">
+      <div class="pkg-name">{tune}</div>
+      <div class="pkg-role">Hyperparameter Tuning</div>
+      <div class="pkg-desc">Searches over model parameters using resamples, never touching the test set</div>
+    </div>
+    <div class="package-card">
+      <div class="pkg-name">{yardstick}</div>
+      <div class="pkg-role">Performance Metrics</div>
+      <div class="pkg-desc">Tidy, consistent functions for accuracy, ROC-AUC, RMSE, and dozens more</div>
+    </div>
+  </div>
+
+  <h2>The Workflow at a Glance</h2>
+
+  <p>Every tidymodels project — whether predicting attrition or forecasting headcount — follows the same spine:</p>
+
+  <div class="workflow-diagram">
+    <span class="wf-step">Split data</span>
+    <span class="wf-arrow">→</span>
+    <span class="wf-step">Define recipe</span>
+    <span class="wf-arrow">→</span>
+    <span class="wf-step">Specify model</span>
+    <span class="wf-arrow">→</span>
+    <span class="wf-step">Bundle workflow</span>
+    <span class="wf-arrow">→</span>
+    <span class="wf-step">Resample &amp; tune</span>
+    <span class="wf-arrow">→</span>
+    <span class="wf-step">Evaluate &amp; explain</span>
+  </div>
+
+  <p>Each arrow above is a place where ad-hoc modeling commonly breaks. tidymodels puts guardrails at every one of them.</p>
+
+  <h2>Why This Matters for Your Mission</h2>
+
+  <p>Your goal is to build a model you can stand behind in a room with HR leadership. That requires two things most People Analytics models lack: <em>honest performance estimates</em> (not inflated by leakage) and <em>explainability</em> (so you can say more than "the model says so").</p>
+
+  <p>tidymodels is built to deliver both. By the end of this journey, you'll have a single reproducible R script that takes IBM HR Attrition data from raw CSV to a presentation-ready result — including which factors most drive attrition risk.</p>
+
+  <hr>
+
+  <div class="quiz-section">
+    <h2>Check Your Understanding</h2>
+
+    <div class="question-block" id="q1">
+      <div class="question-text">1. The "Pit of Success" in tidymodels means that correct modeling practice is…</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q1',false)">harder to achieve than in base R</button>
+        <button class="option-btn" onclick="answer(this,'q1',true)">the easiest and most natural path</button>
+        <button class="option-btn" onclick="answer(this,'q1',false)">only available to expert statisticians</button>
+      </div>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+
+    <div class="question-block" id="q2">
+      <div class="question-text">2. Which tidymodels package bundles a preprocessing recipe together with a model specification?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q2',false)">{parsnip}</button>
+        <button class="option-btn" onclick="answer(this,'q2',false)">{rsample}</button>
+        <button class="option-btn" onclick="answer(this,'q2',true)">{workflows}</button>
+      </div>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <div class="question-block" id="q3">
+      <div class="question-text">3. In People Analytics modeling, the most common source of inflated performance estimates is…</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q3',false)">using too many predictor variables</button>
+        <button class="option-btn" onclick="answer(this,'q3',true)">information leakage from test data</button>
+        <button class="option-btn" onclick="answer(this,'q3',false)">choosing the wrong model algorithm</button>
+      </div>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+
+    <div class="score-display" id="score-display"></div>
+  </div>
+
+  <hr>
+
+  <div class="primary-source">
+    <div class="source-label">Primary Source for This Lesson</div>
+    <a href="https://www.tmwr.org/software-modeling" target="_blank">Tidy Modeling with R — Chapter 1: Software for Modeling</a>
+    <div style="margin-top:0.35rem; color: var(--muted);">Read this chapter to deepen the ideas above. It's short (~10 min) and sets up everything that follows.</div>
+  </div>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher anything — why a concept matters, how it connects to a project you're working on, or what to tackle next. Just type in the chat.
+  </div>
+
+  <div class="nav-links">
+    Next → <a href="0002-splitting-data-rsample.html">Splitting Your HR Data with {rsample}</a>
+  </div>
+
+</main>
+<script>
+  const correct = {};
+  let answered = 0;
+
+  const exp = {
+    q1: {
+      y: "Exactly. The framework is designed so that following best practices — proper splits, no leakage, reproducible preprocessing — is what you naturally fall into.",
+      n: "Not quite. The 'Pit of Success' is specifically about making correct practice the <em>default</em> path, not an expert-only achievement."
+    },
+    q2: {
+      y: "{workflows} is the glue — it holds a recipe (preprocessing) and a parsnip model spec together as one unit, ensuring they're always applied consistently.",
+      n: "Close, but not quite. {parsnip} specifies the model type; {rsample} handles splitting. {workflows} is what bundles them together."
+    },
+    q3: {
+      y: "Correct. When test data touches your preprocessing or model selection, performance looks better than it really is — a serious problem when predictions affect people's careers.",
+      n: "That's a real issue, but secondary. The most common cause of inflated performance is leakage — test data influencing how the model was trained or preprocessed."
+    }
+  };
+
+  function answer(btn, qid, isCorrect) {
+    const block = document.getElementById(qid);
+    const buttons = block.querySelectorAll('.option-btn');
+    const fb = document.getElementById(qid + '-fb');
+
+    if (correct[qid] !== undefined) return;
+
+    buttons.forEach(b => b.disabled = true);
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+
+    if (!isCorrect) {
+      buttons.forEach(b => {
+        if (b.getAttribute('onclick').includes('true')) b.classList.add('correct');
+      });
+    }
+
+    fb.innerHTML = isCorrect ? exp[qid].y : exp[qid].n;
+    fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+
+    correct[qid] = isCorrect ? 1 : 0;
+    answered++;
+    if (answered === 3) showScore();
+  }
+
+  function showScore() {
+    const score = Object.values(correct).reduce((a, b) => a + b, 0);
+    const msgs = [
+      'Keep going — re-read the lesson and try again.',
+      'Good start — one more pass will close the gaps.',
+      'Solid — you have the core ideas.',
+      'Perfect — you\'re ready for the next lesson.'
+    ];
+    const el = document.getElementById('score-display');
+    el.innerHTML = '<strong>Score: ' + score + '/3</strong> &nbsp;·&nbsp; ' + msgs[score];
+    el.className = 'score-display show';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 3 — Specifying Models with {parsnip}</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #e5e7eb;
+    --bg: #fafaf9;
+    --correct: #16a34a;
+    --correct-bg: #dcfce7;
+    --wrong: #dc2626;
+    --wrong-bg: #fee2e2;
+    --neutral-bg: #f3f4f6;
+    --code-bg: #1e1e2e;
+    --code-fg: #cdd6f4;
+    --code-comment: #6c7086;
+    --code-fn: #89b4fa;
+    --code-str: #a6e3a1;
+    --code-num: #fab387;
+    --code-kw: #cba6f7;
+    --code-op: #89dceb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--bg);
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  main { max-width: 640px; margin: 0 auto; }
+
+  .lesson-meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.5rem;
+  }
+
+  h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 0.4rem; font-weight: normal; }
+
+  .subtitle { font-style: italic; color: var(--muted); margin-bottom: 2.5rem; font-size: 1.05rem; }
+
+  h2 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 2.5rem 0 0.75rem;
+  }
+
+  p { margin-bottom: 1.2rem; }
+
+  code {
+    font-family: 'Courier New', monospace; font-size: 0.88em;
+    background: var(--neutral-bg); padding: 0.1em 0.3em; border-radius: 3px;
+  }
+
+  pre {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: 1.25rem 1.5rem; margin: 1.25rem 0; overflow-x: auto;
+    font-family: 'Courier New', monospace; font-size: 0.88rem; line-height: 1.6;
+  }
+
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+
+  .kw  { color: var(--code-kw); }
+  .fn  { color: var(--code-fn); }
+  .str { color: var(--code-str); }
+  .num { color: var(--code-num); }
+  .cm  { color: var(--code-comment); font-style: italic; }
+  .op  { color: var(--code-op); }
+
+  .callout {
+    background: var(--accent-light); border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem; margin: 1.5rem 0; font-size: 0.95rem; border-radius: 0 6px 6px 0;
+  }
+
+  .callout strong {
+    display: block; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.3rem; color: var(--accent);
+  }
+
+  .spec-diagram {
+    display: flex; gap: 0; margin: 1.25rem 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+  }
+
+  .spec-part { flex: 1; padding: 1rem; text-align: center; border: 1px solid var(--border); }
+  .spec-part:first-child { border-radius: 8px 0 0 8px; }
+  .spec-part:last-child  { border-radius: 0 8px 8px 0; }
+  .spec-part.type   { background: #eff6ff; border-color: #bfdbfe; }
+  .spec-part.engine { background: #f0fdf4; border-color: #bbf7d0; }
+  .spec-part.mode   { background: #faf5ff; border-color: #e9d5ff; }
+
+  .spec-part .part-label {
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.35rem;
+  }
+
+  .spec-part .part-value { font-family: 'Courier New', monospace; font-size: 0.88rem; font-weight: bold; }
+  .spec-part.type   .part-value { color: #1d4ed8; }
+  .spec-part.engine .part-value { color: #15803d; }
+  .spec-part.mode   .part-value { color: #7c3aed; }
+  .spec-part .part-meaning { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+
+  .swap-demo {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem; margin: 1.25rem 0; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .swap-demo .demo-title {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin-bottom: 1rem; font-weight: 600;
+  }
+
+  .model-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+
+  .model-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.82rem;
+    padding: 0.4rem 0.85rem; border: 1px solid var(--border); border-radius: 20px;
+    background: white; cursor: pointer; transition: all 0.15s; color: var(--ink);
+  }
+
+  .model-btn:hover { background: var(--neutral-bg); }
+  .model-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  #swap-code {
+    margin-top: 1rem; font-size: 0.82rem; line-height: 1.6; border-radius: 6px;
+    padding: 0.9rem 1.1rem; background: var(--code-bg); color: var(--code-fg);
+    font-family: 'Courier New', monospace;
+  }
+
+  .swap-insight { font-size: 0.82rem; color: var(--muted); margin-top: 0.75rem; font-style: italic; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+  .question-block { margin-bottom: 2rem; }
+
+  .question-text {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; line-height: 1.4;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .option-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9rem;
+    text-align: left; padding: 0.65rem 1rem; border: 1px solid var(--border);
+    border-radius: 6px; background: white; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; line-height: 1.3;
+  }
+
+  .option-btn:hover:not(:disabled) { background: var(--neutral-bg); border-color: #9ca3af; }
+  .option-btn.correct { background: var(--correct-bg); border-color: var(--correct); color: #14532d; font-weight: 600; }
+  .option-btn.wrong   { background: var(--wrong-bg);   border-color: var(--wrong);   color: #7f1d1d; }
+
+  .feedback {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 4px; display: none;
+  }
+
+  .feedback.show    { display: block; }
+  .feedback.correct { background: var(--correct-bg); color: #14532d; }
+  .feedback.wrong   { background: var(--wrong-bg);   color: #7f1d1d; }
+
+  .score-display {
+    font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--neutral-bg);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1.5rem; display: none; font-size: 0.95rem;
+  }
+
+  .score-display.show { display: block; }
+
+  .primary-source {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1.5rem 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.88rem;
+  }
+
+  .primary-source .source-label {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.3rem;
+  }
+
+  .primary-source a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .primary-source a:hover { text-decoration: underline; }
+
+  .ask-teacher {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+    padding: 1rem 1.25rem; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.88rem; color: #92400e; margin-top: 1.5rem;
+  }
+
+  .nav-links {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 2.5rem; color: var(--muted); display: flex; justify-content: space-between;
+  }
+
+  .nav-links a { color: var(--accent); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="lesson-meta">Lesson 3 &nbsp;·&nbsp; Tidymodels for People Analytics</div>
+  <h1>Specifying Models with {parsnip}</h1>
+  <div class="subtitle">One interface for every algorithm — swap engines without rewriting your code</div>
+
+  <h2>The Problem with Base R Modeling</h2>
+
+  <p>You've probably felt this: logistic regression uses <code>glm(..., family = binomial)</code>, random forests need <code>randomForest()</code> or <code>ranger()</code> with completely different argument names, and regularized regression wants <code>glmnet()</code> with a matrix input instead of a data frame. Every package speaks a different language.</p>
+
+  <p>This forces a painful choice: commit to one algorithm early (because switching means rewriting everything), or spend your time wrangling syntax instead of thinking about the model. Neither is good when you're trying to answer a business question about attrition.</p>
+
+  <p><code>{parsnip}</code> solves this with a single consistent interface. You declare <em>what kind of model</em> you want, <em>which package</em> should run it, and <em>what type of outcome</em> you're predicting — three decisions, three function calls, same syntax every time.</p>
+
+  <h2>The Three Components</h2>
+
+  <div class="spec-diagram">
+    <div class="spec-part type">
+      <div class="part-label">Model Type</div>
+      <div class="part-value">logistic_reg()</div>
+      <div class="part-meaning">The mathematical structure</div>
+    </div>
+    <div class="spec-part engine">
+      <div class="part-label">Engine</div>
+      <div class="part-value">set_engine("glm")</div>
+      <div class="part-meaning">The R package that runs it</div>
+    </div>
+    <div class="spec-part mode">
+      <div class="part-label">Mode</div>
+      <div class="part-value">set_mode("classification")</div>
+      <div class="part-meaning">Category or number outcome</div>
+    </div>
+  </div>
+
+  <p>These three things are declared <em>independently of your data</em>. The specification is just a description — nothing is computed until you call <code>fit()</code>.</p>
+
+  <h2>Your First Attrition Model Specification</h2>
+
+<pre><code><span class="kw">library</span>(tidymodels)
+
+<span class="cm"># Logistic regression — natural starting point for attrition (Yes/No outcome)</span>
+lr_spec &lt;- <span class="fn">logistic_reg</span>() <span class="op">%>%</span>
+  <span class="fn">set_engine</span>(<span class="str">"glm"</span>) <span class="op">%>%</span>
+  <span class="fn">set_mode</span>(<span class="str">"classification"</span>)
+
+lr_spec
+<span class="cm">#> Logistic Regression Model Specification (classification)</span>
+<span class="cm">#> Computational engine: glm</span></code></pre>
+
+  <p>Nothing has been computed yet. You've described the model — not run it. That separation lets you swap engines or compare algorithms without touching anything downstream.</p>
+
+  <h2>Fitting the Model</h2>
+
+<pre><code><span class="cm"># Fit to the training data from Lesson 2</span>
+lr_fit &lt;- lr_spec <span class="op">%>%</span>
+  <span class="fn">fit</span>(Attrition <span class="op">~</span> ., data = attr_train)
+
+lr_fit</code></pre>
+
+  <p>The dot in the formula means "use all other columns as predictors." In a real analysis you'd be more selective, but this gives you a working model immediately to build on.</p>
+
+  <h2>The Power of Swapping Engines</h2>
+
+  <p>Here is the key insight of parsnip. To switch algorithms, you change <em>two lines</em>. Everything downstream — fitting, predicting, evaluating — stays identical.</p>
+
+  <div class="swap-demo">
+    <div class="demo-title">Choose a model for attrition prediction</div>
+    <div class="model-row">
+      <button class="model-btn active" onclick="setModel('lr', this)">Logistic Regression</button>
+      <button class="model-btn" onclick="setModel('rf', this)">Random Forest</button>
+      <button class="model-btn" onclick="setModel('xgb', this)">XGBoost</button>
+    </div>
+    <div id="swap-code"></div>
+    <div class="swap-insight" id="swap-insight"></div>
+  </div>
+
+  <p>The <code>fit()</code>, <code>predict()</code>, and evaluation calls you write once work with all three. This is why you never need to commit to an algorithm early in tidymodels.</p>
+
+  <h2>Making Predictions</h2>
+
+  <p>All parsnip models return predictions as a tibble with predictable column names — making it trivial to feed results into any tidyverse operation.</p>
+
+<pre><code><span class="cm"># Class predictions — who is predicted to leave?</span>
+<span class="fn">predict</span>(lr_fit, new_data = attr_test)
+<span class="cm">#> # A tibble: 294 × 1</span>
+<span class="cm">#>   .pred_class</span>
+<span class="cm">#> 1 No</span>
+<span class="cm">#> 2 No  ...</span>
+
+<span class="cm"># Probability scores — how confident is the model?</span>
+<span class="fn">predict</span>(lr_fit, new_data = attr_test, type = <span class="str">"prob"</span>)
+<span class="cm">#> # A tibble: 294 × 2</span>
+<span class="cm">#>   .pred_No .pred_Yes</span>
+<span class="cm">#>      0.943     0.057</span>
+<span class="cm">#>      0.891     0.109  ...</span></code></pre>
+
+  <p>The <code>.pred_Yes</code> column is your attrition risk score — the number you'd show an HR business partner when flagging employees at elevated risk of leaving.</p>
+
+  <div class="callout">
+    <strong>People Analytics Note</strong>
+    For attrition presentations, probabilities (<code>type = "prob"</code>) are almost always more useful than class predictions. A score of 0.72 tells a richer story than "Yes." It lets leadership ask: "Should we act above 0.5? 0.7?" — that threshold decision belongs to the business, not the model.
+  </div>
+
+  <h2>What's Still Missing</h2>
+
+  <p>You now have a model spec and can fit and predict. But there's a gap: preprocessing — encoding categorical columns, normalizing numerics, handling missing values — isn't part of the model spec. That belongs in a <code>{recipes}</code> recipe, and the two need to travel together so the same transformations always apply to new data. That's exactly what <code>{workflows}</code> solves — Lessons 4 and 5.</p>
+
+  <hr>
+
+  <div class="quiz-section">
+    <h2>Check Your Understanding</h2>
+
+    <div class="question-block" id="q1">
+      <div class="question-text">1. What are the three components of a parsnip model specification?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q1',false)">Formula, data, and family argument</button>
+        <button class="option-btn" onclick="answer(this,'q1',true)">Model type, engine, and mode</button>
+        <button class="option-btn" onclick="answer(this,'q1',false)">Training set, test set, and metric</button>
+      </div>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+
+    <div class="question-block" id="q2">
+      <div class="question-text">2. To switch your attrition model from logistic regression to random forest, what do you change?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q2',false)">Rewrite the fit, predict, and evaluate calls</button>
+        <button class="option-btn" onclick="answer(this,'q2',false)">Change the formula and retransform the data</button>
+        <button class="option-btn" onclick="answer(this,'q2',true)">Change the model type and engine lines only</button>
+      </div>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <div class="question-block" id="q3">
+      <div class="question-text">3. For an attrition presentation to HR leadership, which predict output is most useful?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q3',false)">Class predictions (Yes or No per employee)</button>
+        <button class="option-btn" onclick="answer(this,'q3',true)">Probability scores (risk score per employee)</button>
+        <button class="option-btn" onclick="answer(this,'q3',false)">Residuals from the logistic regression fit</button>
+      </div>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+
+    <div class="score-display" id="score-display"></div>
+  </div>
+
+  <hr>
+
+  <div class="primary-source">
+    <div class="source-label">Primary Source for This Lesson</div>
+    <a href="https://www.tmwr.org/models" target="_blank">Tidy Modeling with R — Chapter 6: Fitting Models with parsnip</a>
+    <div style="margin-top:0.35rem; color: var(--muted);">Read for the full set of model types and engines, and the <code>translate()</code> function that shows exactly what parsnip passes to the underlying package.</div>
+  </div>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher anything — which model to start with for attrition, how to handle multiclass outcomes, or what comes next. Just type in the chat.
+  </div>
+
+  <div class="nav-links">
+    <span>← <a href="0002-splitting-data-rsample.html">Lesson 2: Splitting Data</a></span>
+    <span>Next → <a href="0004-workflows.html">Bundling with {workflows}</a></span>
+  </div>
+
+</main>
+<script>
+  const models = {
+    lr: {
+      code: `<span style="color:#6c7086;font-style:italic"># Logistic regression — interpretable, good baseline</span>\nlr_spec &lt;- <span style="color:#89b4fa">logistic_reg</span>() <span style="color:#89dceb">%&gt;%</span>\n  <span style="color:#89b4fa">set_engine</span>(<span style="color:#a6e3a1">"glm"</span>) <span style="color:#89dceb">%&gt;%</span>\n  <span style="color:#89b4fa">set_mode</span>(<span style="color:#a6e3a1">"classification"</span>)`,
+      insight: 'Good first model for attrition. Coefficients are easy to explain to HR leadership.'
+    },
+    rf: {
+      code: `<span style="color:#6c7086;font-style:italic"># Random forest — handles non-linearity, often more accurate</span>\nrf_spec &lt;- <span style="color:#89b4fa">rand_forest</span>() <span style="color:#89dceb">%&gt;%</span>\n  <span style="color:#89b4fa">set_engine</span>(<span style="color:#a6e3a1">"ranger"</span>) <span style="color:#89dceb">%&gt;%</span>\n  <span style="color:#89b4fa">set_mode</span>(<span style="color:#a6e3a1">"classification"</span>)`,
+      insight: 'Same fit/predict/evaluate calls as logistic regression — only two lines changed.'
+    },
+    xgb: {
+      code: `<span style="color:#6c7086;font-style:italic"># XGBoost — high performance, many tunable parameters</span>\nxgb_spec &lt;- <span style="color:#89b4fa">boost_tree</span>() <span style="color:#89dceb">%&gt;%</span>\n  <span style="color:#89b4fa">set_engine</span>(<span style="color:#a6e3a1">"xgboost"</span>) <span style="color:#89dceb">%&gt;%</span>\n  <span style="color:#89b4fa">set_mode</span>(<span style="color:#a6e3a1">"classification"</span>)`,
+      insight: 'Still just two lines different. The rest of your pipeline is completely untouched.'
+    }
+  };
+
+  function setModel(key, btn) {
+    document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('swap-code').innerHTML = models[key].code;
+    document.getElementById('swap-insight').textContent = models[key].insight;
+  }
+
+  document.getElementById('swap-code').innerHTML = models.lr.code;
+  document.getElementById('swap-insight').textContent = models.lr.insight;
+
+  const correct = {};
+  let answered = 0;
+
+  const exp = {
+    q1: {
+      y: "Right. Model type (the algorithm's shape), engine (the R package that computes it), and mode (classification vs regression). Together they fully describe what to build — before touching any data.",
+      n: "Not quite. The formula and data go into <code>fit()</code> later. The specification is just type + engine + mode, declared independently of data."
+    },
+    q2: {
+      y: "Exactly. Change <code>logistic_reg()</code> to <code>rand_forest()</code> and <code>\"glm\"</code> to <code>\"ranger\"</code>. Every <code>fit()</code>, <code>predict()</code>, and evaluation call stays identical.",
+      n: "With parsnip you only change the specification — two lines. The formula, fit, predict, and evaluation calls are the same regardless of algorithm."
+    },
+    q3: {
+      y: "Correct. Probabilities give leadership the full picture — they can decide whether 0.6 warrants action, not the model. A binary Yes/No forces that threshold decision onto the data scientist.",
+      n: "Class predictions force a threshold on the business. Probabilities let leadership choose their own — which is where that decision belongs."
+    }
+  };
+
+  function answer(btn, qid, isCorrect) {
+    const block = document.getElementById(qid);
+    const buttons = block.querySelectorAll('.option-btn');
+    const fb = document.getElementById(qid + '-fb');
+
+    if (correct[qid] !== undefined) return;
+
+    buttons.forEach(b => b.disabled = true);
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+
+    if (!isCorrect) {
+      buttons.forEach(b => {
+        if (b.getAttribute('onclick').includes('true')) b.classList.add('correct');
+      });
+    }
+
+    fb.innerHTML = isCorrect ? exp[qid].y : exp[qid].n;
+    fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+
+    correct[qid] = isCorrect ? 1 : 0;
+    answered++;
+    if (answered === 3) showScore();
+  }
+
+  function showScore() {
+    const score = Object.values(correct).reduce((a, b) => a + b, 0);
+    const msgs = [
+      'Re-read the lesson — focus on the three-component structure and the engine swap demo.',
+      'Good effort — review when to use probabilities vs class predictions.',
+      'Solid — nearly there.',
+      'Perfect — you\'re ready for Lesson 4.'
+    ];
+    const el = document.getElementById('score-display');
+    el.innerHTML = '<strong>Score: ' + score + '/3</strong> &nbsp;·&nbsp; ' + msgs[score];
+    el.className = 'score-display show';
+  }
+</script>
+</body>
+</html>

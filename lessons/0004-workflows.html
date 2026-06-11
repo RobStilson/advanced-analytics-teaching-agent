@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 4 — Bundling with {workflows}</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #e5e7eb;
+    --bg: #fafaf9;
+    --correct: #16a34a;
+    --correct-bg: #dcfce7;
+    --wrong: #dc2626;
+    --wrong-bg: #fee2e2;
+    --neutral-bg: #f3f4f6;
+    --code-bg: #1e1e2e;
+    --code-fg: #cdd6f4;
+    --code-comment: #6c7086;
+    --code-fn: #89b4fa;
+    --code-str: #a6e3a1;
+    --code-num: #fab387;
+    --code-kw: #cba6f7;
+    --code-op: #89dceb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px; line-height: 1.75; color: var(--ink);
+    background: var(--bg); padding: 3rem 1.5rem 6rem;
+  }
+
+  main { max-width: 640px; margin: 0 auto; }
+
+  .lesson-meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.5rem;
+  }
+
+  h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 0.4rem; font-weight: normal; }
+  .subtitle { font-style: italic; color: var(--muted); margin-bottom: 2.5rem; font-size: 1.05rem; }
+
+  h2 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 2.5rem 0 0.75rem;
+  }
+
+  p { margin-bottom: 1.2rem; }
+
+  code {
+    font-family: 'Courier New', monospace; font-size: 0.88em;
+    background: var(--neutral-bg); padding: 0.1em 0.3em; border-radius: 3px;
+  }
+
+  pre {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: 1.25rem 1.5rem; margin: 1.25rem 0; overflow-x: auto;
+    font-family: 'Courier New', monospace; font-size: 0.88rem; line-height: 1.6;
+  }
+
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+
+  .kw  { color: var(--code-kw); }
+  .fn  { color: var(--code-fn); }
+  .str { color: var(--code-str); }
+  .num { color: var(--code-num); }
+  .cm  { color: var(--code-comment); font-style: italic; }
+  .op  { color: var(--code-op); }
+
+  .callout {
+    background: var(--accent-light); border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem; margin: 1.5rem 0; font-size: 0.95rem; border-radius: 0 6px 6px 0;
+  }
+
+  .callout strong {
+    display: block; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.3rem; color: var(--accent);
+  }
+
+  .warning {
+    background: #fffbeb; border-left: 3px solid #f59e0b;
+    padding: 1rem 1.25rem; margin: 1.5rem 0; font-size: 0.95rem; border-radius: 0 6px 6px 0;
+  }
+
+  .warning strong {
+    display: block; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.3rem; color: #b45309;
+  }
+
+  .stepper {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; margin: 1.25rem 0; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .stepper-tabs { display: flex; border-bottom: 1px solid var(--border); }
+
+  .step-tab {
+    flex: 1; padding: 0.65rem 0.5rem; font-size: 0.78rem; font-weight: 600;
+    text-align: center; cursor: pointer; border: none; background: var(--neutral-bg);
+    color: var(--muted); border-right: 1px solid var(--border); transition: all 0.15s;
+  }
+
+  .step-tab:last-child { border-right: none; }
+  .step-tab.active { background: white; color: var(--accent); }
+
+  .stepper-body { padding: 1.25rem; }
+  .step-panel { display: none; }
+  .step-panel.active { display: block; }
+
+  .step-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem; }
+  .step-desc  { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; line-height: 1.5; }
+
+  .step-code {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 6px;
+    padding: 0.9rem 1.1rem; font-family: 'Courier New', monospace;
+    font-size: 0.82rem; line-height: 1.6;
+  }
+
+  .stepper-nav {
+    display: flex; justify-content: space-between; padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .step-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.82rem;
+    padding: 0.4rem 1rem; border: 1px solid var(--border); border-radius: 6px;
+    background: white; cursor: pointer; color: var(--ink);
+  }
+
+  .step-btn:hover:not(:disabled) { background: var(--neutral-bg); }
+  .step-btn:disabled { opacity: 0.35; cursor: default; }
+  .step-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .step-btn.primary:hover { background: #1d4ed8; }
+  .step-counter { font-size: 0.8rem; color: var(--muted); align-self: center; }
+
+  .wf-anatomy {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem; margin: 1.25rem 0; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .wf-row { display: flex; align-items: stretch; gap: 0; margin-bottom: 0.5rem; }
+
+  .wf-label {
+    width: 90px; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); display: flex; align-items: center; flex-shrink: 0; line-height: 1.3;
+  }
+
+  .wf-box {
+    flex: 1; padding: 0.6rem 0.9rem; border-radius: 6px; font-size: 0.82rem;
+    font-weight: 600; display: flex; align-items: center;
+  }
+
+  .wf-box.preprocessor { background: #fef9c3; color: #713f12; border: 1px solid #fde047; }
+  .wf-box.model-spec   { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+  .wf-box.fit-result   { background: #f0fdf4; color: #14532d; border: 1px solid #bbf7d0; }
+
+  .wf-plus {
+    font-size: 1.2rem; color: var(--muted); display: flex;
+    align-items: center; justify-content: center; padding: 0 0.5rem;
+  }
+
+  .wf-arrow { font-size: 1.1rem; color: var(--muted); margin: 0.25rem 0 0.25rem 90px; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+  .question-block { margin-bottom: 2rem; }
+
+  .question-text {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; line-height: 1.4;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .option-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9rem;
+    text-align: left; padding: 0.65rem 1rem; border: 1px solid var(--border);
+    border-radius: 6px; background: white; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; line-height: 1.3;
+  }
+
+  .option-btn:hover:not(:disabled) { background: var(--neutral-bg); border-color: #9ca3af; }
+  .option-btn.correct { background: var(--correct-bg); border-color: var(--correct); color: #14532d; font-weight: 600; }
+  .option-btn.wrong   { background: var(--wrong-bg);   border-color: var(--wrong);   color: #7f1d1d; }
+
+  .feedback {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 4px; display: none;
+  }
+
+  .feedback.show    { display: block; }
+  .feedback.correct { background: var(--correct-bg); color: #14532d; }
+  .feedback.wrong   { background: var(--wrong-bg);   color: #7f1d1d; }
+
+  .score-display {
+    font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--neutral-bg);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1.5rem; display: none; font-size: 0.95rem;
+  }
+
+  .score-display.show { display: block; }
+
+  .primary-source {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1.5rem 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.88rem;
+  }
+
+  .primary-source .source-label {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.3rem;
+  }
+
+  .primary-source a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .primary-source a:hover { text-decoration: underline; }
+
+  .ask-teacher {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+    padding: 1rem 1.25rem; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.88rem; color: #92400e; margin-top: 1.5rem;
+  }
+
+  .nav-links {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 2.5rem; color: var(--muted); display: flex; justify-content: space-between;
+  }
+
+  .nav-links a { color: var(--accent); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="lesson-meta">Lesson 4 &nbsp;·&nbsp; Tidymodels for People Analytics</div>
+  <h1>Bundling with {workflows}</h1>
+  <div class="subtitle">Keeping preprocessing and model together — forever</div>
+
+  <h2>The Preprocessing Amnesia Problem</h2>
+
+  <p>Imagine you built an attrition model six months ago. You mean-centered the numeric features, one-hot encoded the job role column, and removed near-zero-variance predictors. Now HR wants you to score 200 new employees hired since then.</p>
+
+  <p>Do you remember every preprocessing step? Do you have the <em>training-set means</em> you used for centering — not the new hires' means? Did you apply the steps in the right order?</p>
+
+  <p>This is preprocessing amnesia — and it's one of the most common sources of silent errors in People Analytics. The model and the preprocessing steps live in different places and quietly drift apart.</p>
+
+  <div class="warning">
+    <strong>The Silent Error</strong>
+    Preprocessing new data with its own statistics instead of training-set statistics doesn't throw an error. Your predictions just become subtly wrong — and you won't notice until someone asks why the model "isn't working anymore."
+  </div>
+
+  <h2>What a Workflow Is</h2>
+
+  <p>A <strong>workflow</strong> is a container that holds a preprocessor and a model specification together as one object. When you fit it on training data, it learns the preprocessing parameters. When you call <code>predict()</code>, it automatically applies the exact same preprocessing — using training-set statistics — to whatever new data you pass in.</p>
+
+  <div class="wf-anatomy">
+    <div class="wf-row">
+      <div class="wf-label">Inside a workflow</div>
+      <div class="wf-box preprocessor">Preprocessor (formula or recipe)</div>
+      <div class="wf-plus">+</div>
+      <div class="wf-box model-spec">Model specification (parsnip)</div>
+    </div>
+    <div class="wf-arrow">↓ fit() on training data</div>
+    <div class="wf-row" style="margin-top:0.4rem">
+      <div class="wf-label"></div>
+      <div class="wf-box fit-result">Fitted workflow — preprocessing params + trained model, bundled</div>
+    </div>
+  </div>
+
+  <p>The fitted workflow is a single object you can save, share, or hand to a colleague. Scoring new data is one line. No manual preprocessing required.</p>
+
+  <h2>Building a Workflow, Step by Step</h2>
+
+  <div class="stepper">
+    <div class="stepper-tabs">
+      <button class="step-tab active" onclick="goStep(0)">1. Create</button>
+      <button class="step-tab" onclick="goStep(1)">2. Add model</button>
+      <button class="step-tab" onclick="goStep(2)">3. Add formula</button>
+      <button class="step-tab" onclick="goStep(3)">4. Fit</button>
+      <button class="step-tab" onclick="goStep(4)">5. Predict</button>
+    </div>
+    <div class="stepper-body">
+
+      <div class="step-panel active" id="step-0">
+        <div class="step-title">Start with an empty container</div>
+        <div class="step-desc">workflow() creates the bundle. It holds nothing yet.</div>
+        <div class="step-code"><span style="color:#cba6f7">library</span>(tidymodels)
+
+attr_wf &lt;- <span style="color:#89b4fa">workflow</span>()</div>
+      </div>
+
+      <div class="step-panel" id="step-1">
+        <div class="step-title">Add the model specification</div>
+        <div class="step-desc">Drop in the parsnip spec from Lesson 3. The workflow now knows what algorithm to use.</div>
+        <div class="step-code">lr_spec &lt;- <span style="color:#89b4fa">logistic_reg</span>() <span style="color:#89dceb">%&gt;%</span>
+  <span style="color:#89b4fa">set_engine</span>(<span style="color:#a6e3a1">"glm"</span>) <span style="color:#89dceb">%&gt;%</span>
+  <span style="color:#89b4fa">set_mode</span>(<span style="color:#a6e3a1">"classification"</span>)
+
+attr_wf &lt;- <span style="color:#89b4fa">workflow</span>() <span style="color:#89dceb">%&gt;%</span>
+  <span style="color:#89b4fa">add_model</span>(lr_spec)</div>
+      </div>
+
+      <div class="step-panel" id="step-2">
+        <div class="step-title">Add a preprocessor</div>
+        <div class="step-desc">add_formula() is the simple option — it tells the workflow which columns to use. In Lesson 5, you'll swap this for add_recipe(), which handles encoding, imputation, and more.</div>
+        <div class="step-code">attr_wf &lt;- <span style="color:#89b4fa">workflow</span>() <span style="color:#89dceb">%&gt;%</span>
+  <span style="color:#89b4fa">add_model</span>(lr_spec) <span style="color:#89dceb">%&gt;%</span>
+  <span style="color:#89b4fa">add_formula</span>(Attrition <span style="color:#89dceb">~</span> .)
+
+attr_wf
+<span style="color:#6c7086;font-style:italic">#> ══ Workflow ══════════════════════════
+#> Preprocessor: Formula
+#> Model: logistic_reg()
+#>
+#> ── Preprocessor ──────────────────────
+#> Attrition ~ .
+#>
+#> ── Model ─────────────────────────────
+#> Logistic Regression Model Specification (classification)
+#> Computational engine: glm</span></div>
+      </div>
+
+      <div class="step-panel" id="step-3">
+        <div class="step-title">Fit — one call trains everything</div>
+        <div class="step-desc">fit() applies the preprocessor to training data, then trains the model. Both are locked inside the fitted workflow.</div>
+        <div class="step-code">attr_fit &lt;- attr_wf <span style="color:#89dceb">%&gt;%</span>
+  <span style="color:#89b4fa">fit</span>(data = attr_train)
+
+attr_fit
+<span style="color:#6c7086;font-style:italic">#> ══ Workflow [trained] ════════════════
+#> Preprocessor: Formula
+#> Model: logistic_reg()
+#>
+#> ── Model ─────────────────────────────
+#> Coefficients:
+#> (Intercept)   Age  BusinessTravel ...
+#>       2.341 -0.031          0.421 ...</span></div>
+      </div>
+
+      <div class="step-panel" id="step-4">
+        <div class="step-title">Predict — preprocessing is automatic</div>
+        <div class="step-desc">Pass raw data. The fitted workflow handles all preprocessing using training-set parameters. Nothing manual required — now or in six months.</div>
+        <div class="step-code"><span style="color:#6c7086;font-style:italic"># Score test set employees</span>
+<span style="color:#89b4fa">predict</span>(attr_fit, new_data = attr_test, type = <span style="color:#a6e3a1">"prob"</span>)
+<span style="color:#6c7086;font-style:italic">#> # A tibble: 294 × 2
+#>   .pred_No .pred_Yes
+#>      0.943     0.057
+#>      0.891     0.109  ...</span>
+
+<span style="color:#6c7086;font-style:italic"># Same call works for new hires next year</span>
+<span style="color:#89b4fa">predict</span>(attr_fit, new_data = new_hires_2027, type = <span style="color:#a6e3a1">"prob"</span>)</div>
+      </div>
+
+    </div>
+    <div class="stepper-nav">
+      <button class="step-btn" id="prev-btn" onclick="prevStep()" disabled>← Back</button>
+      <span class="step-counter" id="step-counter">Step 1 of 5</span>
+      <button class="step-btn primary" id="next-btn" onclick="nextStep()">Next →</button>
+    </div>
+  </div>
+
+  <h2>Updating a Workflow</h2>
+
+  <p><code>update_model()</code> lets you swap in a different model spec without rebuilding anything else — the same fair comparison idea from Lesson 3, now formalized:</p>
+
+<pre><code><span class="cm"># Swap logistic regression for random forest — one line</span>
+rf_spec &lt;- <span class="fn">rand_forest</span>(trees = <span class="num">500</span>) <span class="op">%>%</span>
+  <span class="fn">set_engine</span>(<span class="str">"ranger"</span>) <span class="op">%>%</span>
+  <span class="fn">set_mode</span>(<span class="str">"classification"</span>)
+
+attr_rf_fit &lt;- attr_wf <span class="op">%>%</span>
+  <span class="fn">update_model</span>(rf_spec) <span class="op">%>%</span>
+  <span class="fn">fit</span>(data = attr_train)</code></pre>
+
+  <p>Same formula, same training data, same <code>predict()</code> call — just a different model inside. This is how you compare algorithms fairly: identical preprocessing, identical data, only the model changes.</p>
+
+  <div class="callout">
+    <strong>The Deliverable</strong>
+    Save your fitted workflow with <code>saveRDS(attr_fit, "attrition_model.rds")</code>. Six months later: <code>attr_fit &lt;- readRDS("attrition_model.rds")</code>, then <code>predict(attr_fit, new_data = ...)</code>. The exact preprocessing from your original training run is baked in — no notes, no scripts, no guessing.
+  </div>
+
+  <h2>What's Coming: add_recipe()</h2>
+
+  <p>This lesson used <code>add_formula()</code>, which handles column selection but nothing more. In Lesson 5 you'll replace it with <code>add_recipe()</code> — which handles everything HR data actually needs: encoding job role and department as dummy variables, imputing missing survey scores, and normalizing tenure and age. The workflow object stays identical; only the preprocessor grows.</p>
+
+  <hr>
+
+  <div class="quiz-section">
+    <h2>Check Your Understanding</h2>
+
+    <div class="question-block" id="q1">
+      <div class="question-text">1. What is the primary benefit of bundling preprocessing and model into a workflow?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q1',false)">The model trains faster with bundled inputs</button>
+        <button class="option-btn" onclick="answer(this,'q1',true)">Preprocessing is applied consistently to any new data</button>
+        <button class="option-btn" onclick="answer(this,'q1',false)">Workflows automatically tune hyperparameters</button>
+      </div>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+
+    <div class="question-block" id="q2">
+      <div class="question-text">2. When you call predict() on a fitted workflow, what happens to preprocessing?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q2',false)">You must manually re-apply each preprocessing step first</button>
+        <button class="option-btn" onclick="answer(this,'q2',true)">It is applied automatically using training-set parameters</button>
+        <button class="option-btn" onclick="answer(this,'q2',false)">Preprocessing is skipped since the model is already trained</button>
+      </div>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <div class="question-block" id="q3">
+      <div class="question-text">3. What is the difference between add_formula() and add_recipe() in a workflow?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q3',false)">add_formula() is for regression, add_recipe() for classification</button>
+        <button class="option-btn" onclick="answer(this,'q3',false)">add_formula() trains faster, add_recipe() gives higher accuracy</button>
+        <button class="option-btn" onclick="answer(this,'q3',true)">add_formula() selects columns only, add_recipe() enables full feature engineering</button>
+      </div>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+
+    <div class="score-display" id="score-display"></div>
+  </div>
+
+  <hr>
+
+  <div class="primary-source">
+    <div class="source-label">Primary Source for This Lesson</div>
+    <a href="https://www.tmwr.org/workflows" target="_blank">Tidy Modeling with R — Chapter 7: A Model Workflow</a>
+    <div style="margin-top:0.35rem; color: var(--muted);">Read for the full discussion of why preprocessing must be inside the workflow for resampling to give unbiased estimates — a concept that lands fully in Lesson 6.</div>
+  </div>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher anything — how to save and reload a fitted workflow, when add_variables() is useful, or what comes next. Just type in the chat.
+  </div>
+
+  <div class="nav-links">
+    <span>← <a href="0003-model-specification-parsnip.html">Lesson 3: Model Specification</a></span>
+    <span>Next → <a href="0005-feature-engineering-recipes.html">Feature Engineering with {recipes}</a></span>
+  </div>
+
+</main>
+<script>
+  let currentStep = 0;
+  const totalSteps = 5;
+
+  function goStep(n) {
+    document.getElementById('step-' + currentStep).classList.remove('active');
+    document.querySelectorAll('.step-tab')[currentStep].classList.remove('active');
+    currentStep = n;
+    document.getElementById('step-' + currentStep).classList.add('active');
+    document.querySelectorAll('.step-tab')[currentStep].classList.add('active');
+    document.getElementById('prev-btn').disabled = currentStep === 0;
+    document.getElementById('next-btn').disabled = currentStep === totalSteps - 1;
+    document.getElementById('step-counter').textContent = 'Step ' + (currentStep + 1) + ' of ' + totalSteps;
+  }
+
+  function nextStep() { if (currentStep < totalSteps - 1) goStep(currentStep + 1); }
+  function prevStep() { if (currentStep > 0) goStep(currentStep - 1); }
+
+  const correct = {};
+  let answered = 0;
+
+  const exp = {
+    q1: {
+      y: "Exactly. The workflow holds preprocessing and model together, so both are applied consistently whether you're scoring test data today or new employees next year.",
+      n: "Not quite. The core value of a workflow is preprocessing consistency — it's learned once and applied identically to any new data, with no manual steps and no drift."
+    },
+    q2: {
+      y: "Correct. The fitted workflow stores the preprocessing parameters from training. predict() applies them automatically — you pass raw data and get predictions back.",
+      n: "This is exactly the problem workflows solve. With a fitted workflow, predict() handles all preprocessing automatically using the training-set statistics locked inside it."
+    },
+    q3: {
+      y: "Right. add_formula() just points to columns. add_recipe() is where real feature engineering lives — encoding categoricals, imputing missing values, normalizing numerics. You'll build one in Lesson 5.",
+      n: "Both work with any model type or mode. The distinction is power: add_formula() is column selection only, while add_recipe() handles the full preprocessing your HR data needs."
+    }
+  };
+
+  function answer(btn, qid, isCorrect) {
+    const block = document.getElementById(qid);
+    const buttons = block.querySelectorAll('.option-btn');
+    const fb = document.getElementById(qid + '-fb');
+
+    if (correct[qid] !== undefined) return;
+
+    buttons.forEach(b => b.disabled = true);
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+
+    if (!isCorrect) {
+      buttons.forEach(b => {
+        if (b.getAttribute('onclick').includes('true')) b.classList.add('correct');
+      });
+    }
+
+    fb.innerHTML = isCorrect ? exp[qid].y : exp[qid].n;
+    fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+
+    correct[qid] = isCorrect ? 1 : 0;
+    answered++;
+    if (answered === 3) showScore();
+  }
+
+  function showScore() {
+    const score = Object.values(correct).reduce((a, b) => a + b, 0);
+    const msgs = [
+      'Re-read the lesson — focus on what a fitted workflow stores and why.',
+      'Good effort — review what happens to preprocessing when you call predict().',
+      'Solid — nearly there.',
+      'Perfect — you\'re ready for Lesson 5.'
+    ];
+    const el = document.getElementById('score-display');
+    el.innerHTML = '<strong>Score: ' + score + '/3</strong> &nbsp;·&nbsp; ' + msgs[score];
+    el.className = 'score-display show';
+  }
+</script>
+</body>
+</html>

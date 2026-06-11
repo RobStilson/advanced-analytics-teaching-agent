@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 5 — Feature Engineering with {recipes}</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #e5e7eb;
+    --bg: #fafaf9;
+    --correct: #16a34a;
+    --correct-bg: #dcfce7;
+    --wrong: #dc2626;
+    --wrong-bg: #fee2e2;
+    --neutral-bg: #f3f4f6;
+    --code-bg: #1e1e2e;
+    --code-fg: #cdd6f4;
+    --code-comment: #6c7086;
+    --code-fn: #89b4fa;
+    --code-str: #a6e3a1;
+    --code-num: #fab387;
+    --code-kw: #cba6f7;
+    --code-op: #89dceb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px; line-height: 1.75; color: var(--ink);
+    background: var(--bg); padding: 3rem 1.5rem 6rem;
+  }
+
+  main { max-width: 640px; margin: 0 auto; }
+
+  .lesson-meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.5rem;
+  }
+
+  h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 0.4rem; font-weight: normal; }
+  .subtitle { font-style: italic; color: var(--muted); margin-bottom: 2.5rem; font-size: 1.05rem; }
+
+  h2 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 2.5rem 0 0.75rem;
+  }
+
+  p { margin-bottom: 1.2rem; }
+
+  code {
+    font-family: 'Courier New', monospace; font-size: 0.88em;
+    background: var(--neutral-bg); padding: 0.1em 0.3em; border-radius: 3px;
+  }
+
+  pre {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: 1.25rem 1.5rem; margin: 1.25rem 0; overflow-x: auto;
+    font-family: 'Courier New', monospace; font-size: 0.88rem; line-height: 1.6;
+  }
+
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .kw  { color: var(--code-kw); }
+  .fn  { color: var(--code-fn); }
+  .str { color: var(--code-str); }
+  .num { color: var(--code-num); }
+  .cm  { color: var(--code-comment); font-style: italic; }
+  .op  { color: var(--code-op); }
+
+  .callout {
+    background: var(--accent-light); border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem; margin: 1.5rem 0; font-size: 0.95rem; border-radius: 0 6px 6px 0;
+  }
+
+  .callout strong {
+    display: block; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.3rem; color: var(--accent);
+  }
+
+  .warning {
+    background: #fffbeb; border-left: 3px solid #f59e0b;
+    padding: 1rem 1.25rem; margin: 1.5rem 0; font-size: 0.95rem; border-radius: 0 6px 6px 0;
+  }
+
+  .warning strong {
+    display: block; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.3rem; color: #b45309;
+  }
+
+  .col-table {
+    width: 100%; border-collapse: collapse; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.82rem; margin: 1.25rem 0; background: white;
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+
+  .col-table th {
+    background: var(--neutral-bg); padding: 0.55rem 0.9rem; text-align: left;
+    font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border);
+  }
+
+  .col-table td { padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--border); }
+  .col-table tr:last-child td { border-bottom: none; }
+
+  .tag {
+    display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.5rem;
+    border-radius: 10px; font-weight: 600; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .tag.cat { background: #fef9c3; color: #713f12; }
+  .tag.num { background: #eff6ff; color: #1e40af; }
+  .tag.out { background: #f0fdf4; color: #14532d; }
+
+  .recipe-builder {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; margin: 1.25rem 0; font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .recipe-builder-header {
+    background: var(--neutral-bg); padding: 0.75rem 1.25rem;
+    font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border);
+  }
+
+  .step-toggles {
+    padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step-toggle {
+    display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer;
+    padding: 0.6rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .step-toggle:hover { background: var(--neutral-bg); }
+  .step-toggle.on { background: var(--accent-light); border-color: #93c5fd; }
+
+  .toggle-check {
+    width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px;
+    flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: bold; color: white; background: white; transition: all 0.15s;
+  }
+
+  .step-toggle.on .toggle-check { background: var(--accent); border-color: var(--accent); }
+
+  .step-toggle-name {
+    font-family: 'Courier New', monospace; font-size: 0.83rem; font-weight: bold;
+    color: var(--accent); white-space: nowrap;
+  }
+
+  .step-toggle-desc { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; line-height: 1.4; }
+
+  .recipe-effect {
+    padding: 1rem 1.25rem; font-size: 0.83rem; min-height: 56px;
+  }
+
+  .effect-item { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.45rem; }
+  .effect-none { font-style: italic; color: var(--muted); }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+  .question-block { margin-bottom: 2rem; }
+
+  .question-text {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; line-height: 1.4;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .option-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.9rem;
+    text-align: left; padding: 0.65rem 1rem; border: 1px solid var(--border);
+    border-radius: 6px; background: white; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; line-height: 1.3;
+  }
+
+  .option-btn:hover:not(:disabled) { background: var(--neutral-bg); border-color: #9ca3af; }
+  .option-btn.correct { background: var(--correct-bg); border-color: var(--correct); color: #14532d; font-weight: 600; }
+  .option-btn.wrong   { background: var(--wrong-bg);   border-color: var(--wrong);   color: #7f1d1d; }
+
+  .feedback {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 4px; display: none;
+  }
+
+  .feedback.show    { display: block; }
+  .feedback.correct { background: var(--correct-bg); color: #14532d; }
+  .feedback.wrong   { background: var(--wrong-bg);   color: #7f1d1d; }
+
+  .score-display {
+    font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--neutral-bg);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1.5rem; display: none; font-size: 0.95rem;
+  }
+
+  .score-display.show { display: block; }
+
+  .primary-source {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1.5rem 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.88rem;
+  }
+
+  .primary-source .source-label {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.3rem;
+  }
+
+  .primary-source a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .primary-source a:hover { text-decoration: underline; }
+
+  .ask-teacher {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+    padding: 1rem 1.25rem; font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.88rem; color: #92400e; margin-top: 1.5rem;
+  }
+
+  .nav-links {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.85rem;
+    margin-top: 2.5rem; color: var(--muted); display: flex; justify-content: space-between;
+  }
+
+  .nav-links a { color: var(--accent); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="lesson-meta">Lesson 5 &nbsp;·&nbsp; Tidymodels for People Analytics</div>
+  <h1>Feature Engineering with {recipes}</h1>
+  <div class="subtitle">Transforming raw HR data into what models actually need</div>
+
+  <h2>Why add_formula() Isn't Enough</h2>
+
+  <p>The IBM HR Attrition dataset has 35 columns. Several are factors — <code>JobRole</code> has nine levels, <code>Department</code> has three, <code>BusinessTravel</code> has three. Most algorithms can't handle raw factor columns: they need numbers. And numeric columns like <code>MonthlyIncome</code> span from 1,009 to 19,999 — a scale that will dominate distance-based algorithms unless you normalize it.</p>
+
+  <p><code>add_formula(Attrition ~ .)</code> from Lesson 4 tells the workflow which columns to use, but does none of this transformation work. That's the job of a <strong>recipe</strong>.</p>
+
+  <h2>What HR Data Looks Like Coming In</h2>
+
+  <table class="col-table">
+    <thead>
+      <tr><th>Column</th><th>Type</th><th>What needs to happen</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Attrition</td><td><span class="tag out">outcome</span></td><td>Left alone — it's what we're predicting</td></tr>
+      <tr><td>JobRole, Department, EducationField</td><td><span class="tag cat">categorical</span></td><td>Encode as binary dummy variables</td></tr>
+      <tr><td>BusinessTravel, MaritalStatus, OverTime</td><td><span class="tag cat">categorical</span></td><td>Encode as binary dummy variables</td></tr>
+      <tr><td>MonthlyIncome, Age, YearsAtCompany</td><td><span class="tag num">numeric</span></td><td>Normalize to mean 0, SD 1</td></tr>
+      <tr><td>EmployeeCount, StandardHours</td><td><span class="tag num">numeric</span></td><td>Remove — zero variance (same value for everyone)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The Four Steps Your Recipe Needs</h2>
+
+  <p>Toggle each step to see what it does to the attrition data:</p>
+
+  <div class="recipe-builder">
+    <div class="recipe-builder-header">Recipe step explorer</div>
+    <div class="step-toggles">
+
+      <div class="step-toggle" id="tog-zv" onclick="toggleStep('zv')">
+        <div class="toggle-check" id="chk-zv"></div>
+        <div>
+          <div class="step-toggle-name">step_zv(all_predictors())</div>
+          <div class="step-toggle-desc">Remove zero-variance columns — ones with the same value in every row</div>
+        </div>
+      </div>
+
+      <div class="step-toggle" id="tog-other" onclick="toggleStep('other')">
+        <div class="toggle-check" id="chk-other"></div>
+        <div>
+          <div class="step-toggle-name">step_other(all_nominal_predictors(), threshold = 0.05)</div>
+          <div class="step-toggle-desc">Collapse rare factor levels (under 5% of rows) into "other" before encoding</div>
+        </div>
+      </div>
+
+      <div class="step-toggle" id="tog-dummy" onclick="toggleStep('dummy')">
+        <div class="toggle-check" id="chk-dummy"></div>
+        <div>
+          <div class="step-toggle-name">step_dummy(all_nominal_predictors())</div>
+          <div class="step-toggle-desc">Convert each categorical column into binary 0/1 columns — one per level, minus one</div>
+        </div>
+      </div>
+
+      <div class="step-toggle" id="tog-norm" onclick="toggleStep('norm')">
+        <div class="toggle-check" id="chk-norm"></div>
+        <div>
+          <div class="step-toggle-name">step_normalize(all_numeric_predictors())</div>
+          <div class="step-toggle-desc">Center and scale all numeric predictors to mean 0, SD 1</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="recipe-effect" id="recipe-effect">
+      <div class="effect-none">Toggle steps above to see their effects on the attrition data.</div>
+    </div>
+  </div>
+
+  <div class="warning">
+    <strong>Order Matters</strong>
+    Always put <code>step_other()</code> before <code>step_dummy()</code>. If you run <code>step_dummy()</code> first, rare levels become their own binary columns — then <code>step_other()</code> has nothing left to collapse. Steps execute sequentially, top to bottom.
+  </div>
+
+  <h2>The Complete Attrition Recipe</h2>
+
+<pre><code><span class="kw">library</span>(tidymodels)
+
+attr_recipe &lt;- <span class="fn">recipe</span>(Attrition <span class="op">~</span> ., data = attr_train) <span class="op">%>%</span>
+  <span class="cm"># 1. Drop columns with zero variance</span>
+  <span class="fn">step_zv</span>(<span class="fn">all_predictors</span>()) <span class="op">%>%</span>
+  <span class="cm"># 2. Collapse rare levels before encoding</span>
+  <span class="fn">step_other</span>(<span class="fn">all_nominal_predictors</span>(), threshold = <span class="num">0.05</span>) <span class="op">%>%</span>
+  <span class="cm"># 3. Encode all factors as dummy variables</span>
+  <span class="fn">step_dummy</span>(<span class="fn">all_nominal_predictors</span>()) <span class="op">%>%</span>
+  <span class="cm"># 4. Normalize all numeric predictors</span>
+  <span class="fn">step_normalize</span>(<span class="fn">all_numeric_predictors</span>())
+
+attr_recipe
+<span class="cm">#> ── Recipe ────────────────────────────────
+#>  outcome:    Attrition
+#>  predictors: 30 variables
+#> ── Operations
+#>  Zero variance filter on: all_predictors()
+#>  Collapsing rare factors on: all_nominal_predictors()
+#>  Dummy variables from: all_nominal_predictors()
+#>  Centering and scaling for: all_numeric_predictors()</span></code></pre>
+
+  <p><code>recipe()</code> takes the training data to learn column types and levels — but transforms nothing yet. That happens when the recipe is fitted inside a workflow.</p>
+
+  <h2>Plugging the Recipe into Your Workflow</h2>
+
+  <p>One change from Lesson 4: swap <code>add_formula()</code> for <code>add_recipe()</code>. Everything else is identical:</p>
+
+<pre><code>attr_wf &lt;- <span class="fn">workflow</span>() <span class="op">%>%</span>
+  <span class="fn">add_recipe</span>(attr_recipe) <span class="op">%>%</span>   <span class="cm"># replaces add_formula()</span>
+  <span class="fn">add_model</span>(lr_spec)
+
+attr_fit &lt;- attr_wf <span class="op">%>%</span>
+  <span class="fn">fit</span>(data = attr_train)
+
+<span class="fn">predict</span>(attr_fit, new_data = attr_test, type = <span class="str">"prob"</span>)</code></pre>
+
+  <div class="callout">
+    <strong>What fit() Does Now</strong>
+    When fit() runs on this workflow it: (1) drops constant columns, (2) identifies rare levels, (3) learns the dummy structure from training factor levels, (4) computes training-set mean and SD for each numeric column. All four sets of parameters are locked inside the fitted workflow — new data gets exactly the same treatment.
+  </div>
+
+  <h2>Inspecting What the Recipe Did</h2>
+
+  <p>Outside of a workflow, <code>prep()</code> + <code>bake()</code> let you inspect the transformed data — useful for debugging:</p>
+
+<pre><code><span class="cm"># prep() estimates parameters using training data only</span>
+prepped &lt;- <span class="fn">prep</span>(attr_recipe)
+
+<span class="cm"># bake() applies the fitted recipe — NULL means use training data</span>
+transformed &lt;- <span class="fn">bake</span>(prepped, new_data = <span class="kw">NULL</span>)
+
+<span class="fn">glimpse</span>(transformed)
+<span class="cm"># JobRole is now 8 binary columns: JobRole_Manager, JobRole_Research.Scientist ...
+# MonthlyIncome is centered around 0
+# EmployeeCount and StandardHours are gone</span></code></pre>
+
+  <hr>
+
+  <div class="quiz-section">
+    <h2>Check Your Understanding</h2>
+
+    <div class="question-block" id="q1">
+      <div class="question-text">1. Why must step_other() come before step_dummy() in the recipe?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q1',false)">step_dummy() requires numeric inputs to run correctly</button>
+        <button class="option-btn" onclick="answer(this,'q1',true)">step_dummy() would encode rare levels before they can be collapsed</button>
+        <button class="option-btn" onclick="answer(this,'q1',false)">step_other() only works on already-encoded binary columns</button>
+      </div>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+
+    <div class="question-block" id="q2">
+      <div class="question-text">2. What does step_normalize() do to MonthlyIncome, and why does it matter?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q2',false)">It removes extreme salaries so the model trains on typical employees</button>
+        <button class="option-btn" onclick="answer(this,'q2',false)">It converts salary to a log scale to reduce right-skew</button>
+        <button class="option-btn" onclick="answer(this,'q2',true)">It centers and scales salary so it doesn't dominate distance-based models</button>
+      </div>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <div class="question-block" id="q3">
+      <div class="question-text">3. In the attrition workflow, when are the recipe's transformation parameters actually estimated?</div>
+      <div class="options">
+        <button class="option-btn" onclick="answer(this,'q3',false)">When you call recipe() and pass the training data</button>
+        <button class="option-btn" onclick="answer(this,'q3',false)">When you call add_recipe() on the workflow object</button>
+        <button class="option-btn" onclick="answer(this,'q3',true)">When you call fit() on the workflow with training data</button>
+      </div>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+
+    <div class="score-display" id="score-display"></div>
+  </div>
+
+  <hr>
+
+  <div class="primary-source">
+    <div class="source-label">Primary Source for This Lesson</div>
+    <a href="https://www.tmwr.org/recipes" target="_blank">Tidy Modeling with R — Chapter 8: Feature Engineering with recipes</a>
+    <div style="margin-top:0.35rem; color: var(--muted);">Read for the full catalogue of step_* functions and to see how the Ames housing recipe parallels the attrition recipe you built here.</div>
+  </div>
+
+  <div class="ask-teacher">
+    <strong>Questions?</strong> Ask your teacher anything — how to handle missing values with step_impute_*(), what step_corr() does, or what to learn next. Just type in the chat.
+  </div>
+
+  <div class="nav-links">
+    <span>← <a href="0004-workflows.html">Lesson 4: Workflows</a></span>
+    <span>Next → <a href="0006-resampling-cross-validation.html">Resampling &amp; Cross-Validation</a></span>
+  </div>
+
+</main>
+<script>
+  const steps = { zv: false, other: false, dummy: false, norm: false };
+
+  const effects = {
+    zv:    { icon: '🗑️', text: '<strong>EmployeeCount</strong> and <strong>StandardHours</strong> removed — every employee has the same value, so they carry no predictive signal.' },
+    other: { icon: '🪣', text: 'Rare <strong>JobRole</strong> levels (under 5% of training rows) collapsed into <strong>JobRole_other</strong> — prevents sparse, unstable dummy columns from rare categories.' },
+    dummy: { icon: '🔢', text: '<strong>JobRole</strong> (9 levels) → 8 binary columns. <strong>Department</strong> (3 levels) → 2 binary columns. All factor columns replaced by 0/1 numerics.' },
+    norm:  { icon: '⚖️', text: '<strong>MonthlyIncome</strong> (range 1,009–19,999) and <strong>Age</strong> (18–60) rescaled to mean 0, SD 1 — equal footing with all other numeric predictors.' }
+  };
+
+  function toggleStep(key) {
+    steps[key] = !steps[key];
+    const tog = document.getElementById('tog-' + key);
+    const chk = document.getElementById('chk-' + key);
+    tog.classList.toggle('on', steps[key]);
+    chk.textContent = steps[key] ? '✓' : '';
+    renderEffects();
+  }
+
+  function renderEffects() {
+    const order = ['zv', 'other', 'dummy', 'norm'];
+    const active = order.filter(k => steps[k]);
+    const el = document.getElementById('recipe-effect');
+    if (active.length === 0) {
+      el.innerHTML = '<div class="effect-none">Toggle steps above to see their effects on the attrition data.</div>';
+      return;
+    }
+    el.innerHTML = active.map(k =>
+      `<div class="effect-item"><span style="font-size:1rem">${effects[k].icon}</span><span>${effects[k].text}</span></div>`
+    ).join('');
+  }
+
+  const correct = {};
+  let answered = 0;
+
+  const exp = {
+    q1: {
+      y: "Exactly. If step_dummy() runs first, every rare JobRole level gets its own binary column — and then step_other() has nothing left to consolidate. Steps run sequentially, so order is everything.",
+      n: "Not quite. The issue is sequencing: if step_dummy() runs first, rare levels are already encoded as individual binary columns, and step_other() can no longer consolidate them."
+    },
+    q2: {
+      y: "Correct. A variable spanning ~19,000 units will dominate Euclidean distances and regularization penalties compared to one ranging 18–60. Normalizing puts every predictor on equal footing.",
+      n: "Normalization isn't about removing outliers or log-transforming — it's about scale. MonthlyIncome's wide range would unfairly dominate scale-sensitive algorithms without centering and scaling."
+    },
+    q3: {
+      y: "Right. recipe() defines the steps and notes column types. add_recipe() attaches the spec to the workflow. fit() is when the actual parameters — means, SDs, factor levels — are estimated from training data.",
+      n: "recipe() and add_recipe() only define and attach the specification — no parameters are computed. The estimation happens when fit() is called and the recipe actually sees the training data."
+    }
+  };
+
+  function answer(btn, qid, isCorrect) {
+    const block = document.getElementById(qid);
+    const buttons = block.querySelectorAll('.option-btn');
+    const fb = document.getElementById(qid + '-fb');
+
+    if (correct[qid] !== undefined) return;
+
+    buttons.forEach(b => b.disabled = true);
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+
+    if (!isCorrect) {
+      buttons.forEach(b => {
+        if (b.getAttribute('onclick').includes('true')) b.classList.add('correct');
+      });
+    }
+
+    fb.innerHTML = isCorrect ? exp[qid].y : exp[qid].n;
+    fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+
+    correct[qid] = isCorrect ? 1 : 0;
+    answered++;
+    if (answered === 3) showScore();
+  }
+
+  function showScore() {
+    const score = Object.values(correct).reduce((a, b) => a + b, 0);
+    const msgs = [
+      'Re-read the lesson — focus on step ordering and when parameters are estimated.',
+      'Good effort — review when fit() estimates recipe parameters vs when recipe() is called.',
+      'Solid — nearly there.',
+      'Perfect — you\'re ready for Lesson 6.'
+    ];
+    const el = document.getElementById('score-display');
+    el.innerHTML = '<strong>Score: ' + score + '/3</strong> &nbsp;·&nbsp; ' + msgs[score];
+    el.className = 'score-display show';
+  }
+</script>
+</body>
+</html>
